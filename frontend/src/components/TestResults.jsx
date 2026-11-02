@@ -16,7 +16,8 @@ export default function TestResults({
   code = '', 
   language = 'python',
   testCases = [],
-  setTestCases
+  setTestCases,
+  onTestComplete
 }) {
   const currentLangConfig = getLanguageConfig(language);
 
@@ -96,9 +97,9 @@ export default function TestResults({
       } catch (err) {
         newResults[tc.id] = {
           pass: false,
-          category: 'EXECUTION_ERROR',
-          title: 'Execution Error',
-          explanation: `Execution Error: ${err.message || 'The test could not be executed.'}`,
+          category: 'RUNTIME_ERROR',
+          title: 'Runtime Error',
+          explanation: `Runtime Error: ${err.message || 'The test could not be executed.'}`,
           badgeClass: 'bg-rose-500/20 text-rose-400 border-rose-500/40',
           boxClass: 'bg-rose-950/20 border-rose-500/30 text-rose-300',
           stdout: '',
@@ -112,6 +113,19 @@ export default function TestResults({
 
     setResults(newResults);
     setIsRunning(false);
+
+    if (typeof onTestComplete === 'function') {
+      const total = testCases.length;
+      const passed = testCases.filter(tc => newResults[tc.id]?.pass).length;
+      const failed = total - passed;
+      onTestComplete({
+        results: newResults,
+        totalCount: total,
+        passedCount: passed,
+        failedCount: failed,
+        completedAt: new Date().toISOString()
+      });
+    }
   };
 
   // Counts
@@ -127,7 +141,7 @@ export default function TestResults({
         <div className="flex items-center space-x-2">
           <Terminal className="w-5 h-5 text-cyan-400" />
           <h3 className="font-bold text-white text-sm">
-            {currentLangConfig.name} Test Cases (Docker Sandbox)
+            {currentLangConfig.name} Test Cases (Isolated Sandbox)
           </h3>
         </div>
 
@@ -138,7 +152,7 @@ export default function TestResults({
           className="flex items-center space-x-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-bold rounded-lg shadow-lg shadow-emerald-600/20 transition cursor-pointer"
         >
           <Play className={`w-3.5 h-3.5 fill-current ${isRunning ? 'animate-spin' : ''}`} />
-          <span>{isRunning ? `Executing ${currentLangConfig.shortName} in Docker...` : `Run All ${currentLangConfig.shortName} Tests`}</span>
+          <span>{isRunning ? `Executing ${currentLangConfig.shortName} via Judge0...` : `Run All ${currentLangConfig.shortName} Tests`}</span>
         </button>
       </div>
 
@@ -210,24 +224,41 @@ export default function TestResults({
                   ? 'bg-emerald-950/15 border-emerald-500/30'
                   : res?.category === 'OUTPUT_MISMATCH'
                   ? 'bg-amber-950/15 border-amber-500/30'
-                  : res?.category === 'EXECUTION_ERROR'
+                  : res?.category === 'COMPILATION_ERROR'
+                  ? 'bg-purple-950/15 border-purple-500/30'
+                  : res?.category === 'TIMEOUT'
+                  ? 'bg-orange-950/15 border-orange-500/30'
+                  : res?.category === 'RUNTIME_ERROR'
                   ? 'bg-rose-950/15 border-rose-500/30'
                   : 'bg-[#070b14] border-slate-800'
               }`}
             >
               {/* Header: Test number + Categorized Badge + Remove Button */}
-              <div className="flex items-center justify-between pb-2 border-b border-slate-800/60">
+              <div className="flex items-center justify-between pb-2 border-b border-slate-800/60 flex-wrap gap-2">
                 <div className="flex items-center space-x-2 flex-wrap gap-1">
                   <span className="font-bold text-slate-300">Test #{index + 1}</span>
                   
-                  {/* Categorized PASS / OUTPUT MISMATCH / EXECUTION ERROR Badge */}
+                  {tc.isEdgeCase && (
+                    <span className="text-[9px] uppercase font-bold text-cyan-300 bg-cyan-950/70 border border-cyan-800/70 px-1.5 py-0.5 rounded tracking-wide">
+                      Edge Case
+                    </span>
+                  )}
+                  {tc.label && (
+                    <span className="text-[10px] text-slate-400 font-normal bg-slate-800/60 px-1.5 py-0.5 rounded hidden sm:inline">
+                      {tc.label}
+                    </span>
+                  )}
+                  
+                  {/* Categorized PASS / OUTPUT MISMATCH / COMPILATION / TIMEOUT / RUNTIME ERROR Badge */}
                   {res ? (
                     <span
                       className={`inline-flex items-center space-x-1 px-2 py-0.5 rounded text-[10px] font-extrabold uppercase border ${res.badgeClass}`}
                     >
                       {res.category === 'PASSED' && <CheckCircle2 className="w-3 h-3" />}
                       {res.category === 'OUTPUT_MISMATCH' && <AlertCircle className="w-3 h-3" />}
-                      {res.category === 'EXECUTION_ERROR' && <XCircle className="w-3 h-3" />}
+                      {res.category === 'COMPILATION_ERROR' && <AlertCircle className="w-3 h-3" />}
+                      {res.category === 'TIMEOUT' && <Clock className="w-3 h-3" />}
+                      {res.category === 'RUNTIME_ERROR' && <XCircle className="w-3 h-3" />}
                       <span>{res.title}</span>
                     </span>
                   ) : (

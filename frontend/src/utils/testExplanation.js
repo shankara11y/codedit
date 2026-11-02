@@ -110,20 +110,48 @@ export function explainTestResult(res, actualNorm, expectedNorm, language = 'pyt
     }
   }
 
-  // Fallback if no specific pattern matched
+  // 3a. Compilation Error
+  if (res?.isCompilationError || res?.status === 'COMPILATION_ERROR' || /syntax\s*error|error:/i.test(combined)) {
+    let reason = 'The program failed to compile due to syntax, typing, or structure errors.';
+    if (lang === 'cpp') reason = 'The C++ compiler failed to compile the program due to syntax or type errors.';
+    if (lang === 'java') reason = 'The Java compiler failed to compile Main.java due to syntax or type errors.';
+    if (lang === 'python' && /SyntaxError/i.test(combined)) reason = 'Python detected a syntax error that prevented the script from compiling.';
+    if (lang === 'javascript' && /SyntaxError/i.test(combined)) reason = 'Node.js detected a syntax error that prevented the script from compiling.';
+
+    return {
+      category: 'COMPILATION_ERROR',
+      title: 'Compilation Error',
+      badgeClass: 'bg-purple-500/20 text-purple-300 border-purple-500/40',
+      boxClass: 'bg-purple-950/25 border-purple-500/30 text-purple-200',
+      explanation: `Compilation Error: ${reason}`
+    };
+  }
+
+  // 3b. Execution Timeout
+  if (res?.isTimeout || res?.status === 'TIMEOUT') {
+    return {
+      category: 'TIMEOUT',
+      title: 'Time Limit Exceeded',
+      badgeClass: 'bg-orange-500/20 text-orange-400 border-orange-500/40',
+      boxClass: 'bg-orange-950/25 border-orange-500/30 text-orange-300',
+      explanation: 'Time Limit Exceeded: Your program timed out after exceeding the execution limit. A possible infinite loop was detected.'
+    };
+  }
+
+  // 3c. Runtime Error
   if (!specificReason) {
     if (res?.exitCode !== null && res?.exitCode !== undefined) {
-      specificReason = `The program failed to execute successfully with exit code ${res.exitCode}.`;
+      specificReason = `The program crashed during execution with exit code ${res.exitCode}.`;
     } else {
-      specificReason = 'The program encountered an error and could not complete execution.';
+      specificReason = 'The program encountered an unhandled exception during execution.';
     }
   }
 
   return {
-    category: 'EXECUTION_ERROR',
-    title: 'Execution Error',
+    category: 'RUNTIME_ERROR',
+    title: 'Runtime Error',
     badgeClass: 'bg-rose-500/20 text-rose-400 border-rose-500/40',
     boxClass: 'bg-rose-950/20 border-rose-500/30 text-rose-300',
-    explanation: `Execution Error: ${specificReason}`
+    explanation: `Runtime Error: ${specificReason}`
   };
 }

@@ -115,3 +115,47 @@ export async function executePythonCode(code, stdin = '', timeoutMs = 5000, lang
 
 export const executeCode = executePythonCode;
 
+/**
+ * Saves a completed debugging and verification session to Supabase.
+ * @param {Object} sessionData
+ * @returns {Promise<Object>} Save result with record id and status.
+ */
+export async function saveSessionToSupabase(sessionData) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/sessions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(sessionData)
+    });
+
+    const data = await response.json();
+    return data;
+  } catch (err) {
+    console.error('Failed to save session to Supabase:', err);
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * Fetches recent sessions from Supabase.
+ * @param {Object} [options]
+ * @param {number} [options.limit=10]
+ * @param {string} [options.language]
+ * @returns {Promise<Object>} Sessions array and total count.
+ */
+export async function fetchRecentSessions({ limit = 10, language = null } = {}) {
+  try {
+    const params = new URLSearchParams({ limit: String(limit) });
+    if (language) params.append('language', language);
+
+    const response = await fetch(`${API_BASE_URL}/sessions?${params.toString()}`);
+    const data = await response.json();
+    return data;
+  } catch (err) {
+    console.error('Failed to fetch sessions:', err);
+    return { success: false, error: err.message, data: { sessions: [] } };
+  }
+}

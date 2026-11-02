@@ -10,31 +10,41 @@ export const SUPPORTED_LANGUAGES = [
     monacoLang: 'python',
     ext: '.py',
     badge: 'Python 3.11',
-    defaultCode: `def calculate_average(numbers):
+    defaultCode: `import sys
+
+def calculate_average(numbers):
     total = 0
     for i in range(len(numbers)):
         total += numbers[i]
+    # Bug: Crashes with ZeroDivisionError when numbers list is empty
     return total / len(numbers)
 
-# Bug: ZeroDivisionError occurs when list is empty
-numbers_list = []
+# Read numbers from stdin (space-separated)
+raw_input = sys.stdin.read().strip()
+numbers_list = [float(x) for x in raw_input.split()] if raw_input else []
 print("Average is:", calculate_average(numbers_list))`,
-    defaultDescription: 'Calculate the average of numbers in a list, handling empty lists safely.',
+    defaultDescription: 'Calculate the average of numbers in a list, handling empty lists safely by returning 0.0.',
     defaultTestCases: [
-      { id: 'tc-1', input: '', expectedOutput: 'Average is: 0.0' },
-      { id: 'tc-2', input: '', expectedOutput: 'Average is: 20.0' }
+      { id: 'tc-1', input: '', expectedOutput: 'Average is: 0.0', isEdgeCase: true, label: 'Edge Case: Empty List (ZeroDivisionError)' },
+      { id: 'tc-2', input: '10 20 30', expectedOutput: 'Average is: 20.0', label: 'Standard: Positive Integers' },
+      { id: 'tc-3', input: '42', expectedOutput: 'Average is: 42.0', isEdgeCase: true, label: 'Edge Case: Single Element' },
+      { id: 'tc-4', input: '-10 -20 -30', expectedOutput: 'Average is: -20.0', label: 'Negative Numbers' },
+      { id: 'tc-5', input: '0 0 0', expectedOutput: 'Average is: 0.0', isEdgeCase: true, label: 'Edge Case: All Zeroes' }
     ],
     samples: [
       {
         name: 'Python Sample: ZeroDivisionError',
         description: 'Calculate average of numbers, crashing when list is empty.',
-        code: `def calculate_average(numbers):
+        code: `import sys
+
+def calculate_average(numbers):
     total = 0
     for i in range(len(numbers)):
         total += numbers[i]
     return total / len(numbers)
 
-numbers_list = []
+raw = sys.stdin.read().strip()
+numbers_list = [float(x) for x in raw.split()] if raw else []
 print("Average is:", calculate_average(numbers_list))`
       },
       {
@@ -68,27 +78,35 @@ print("Factorial of 5 is:", factorial(5))`
     monacoLang: 'javascript',
     ext: '.js',
     badge: 'Node.js 20',
-    defaultCode: `function calculateAverage(numbers) {
+    defaultCode: `const fs = require('fs');
+
+function calculateAverage(numbers) {
     let total = 0;
     for (let i = 0; i < numbers.length; i++) {
         total += numbers[i];
     }
-    // Bug: returns NaN when list is empty (0 / 0)
+    // Bug: 0 / 0 returns NaN when list is empty
     return total / numbers.length;
 }
 
-const list = [];
+const input = fs.readFileSync(0, 'utf-8').trim();
+const list = input ? input.split(/\\s+/).map(Number) : [];
 console.log("Average is: " + calculateAverage(list));`,
     defaultDescription: 'Calculate average of numbers in an array, returning 0 if the array is empty.',
     defaultTestCases: [
-      { id: 'tc-1', input: '', expectedOutput: 'Average is: 0' },
-      { id: 'tc-2', input: '', expectedOutput: 'Average is: 20' }
+      { id: 'tc-1', input: '', expectedOutput: 'Average is: 0', isEdgeCase: true, label: 'Edge Case: Empty Array (NaN Bug)' },
+      { id: 'tc-2', input: '10 20 30', expectedOutput: 'Average is: 20', label: 'Standard: Positive Integers' },
+      { id: 'tc-3', input: '42', expectedOutput: 'Average is: 42', isEdgeCase: true, label: 'Edge Case: Single Element' },
+      { id: 'tc-4', input: '-15 -25', expectedOutput: 'Average is: -20', label: 'Negative Numbers' },
+      { id: 'tc-5', input: '0 0 0', expectedOutput: 'Average is: 0', isEdgeCase: true, label: 'Edge Case: All Zeroes' }
     ],
     samples: [
       {
         name: 'JS Sample: Array NaN Bug',
         description: 'Calculate average of numbers in array, failing on empty array.',
-        code: `function calculateAverage(numbers) {
+        code: `const fs = require('fs');
+
+function calculateAverage(numbers) {
     let total = 0;
     for (let i = 0; i < numbers.length; i++) {
         total += numbers[i];
@@ -96,7 +114,9 @@ console.log("Average is: " + calculateAverage(list));`,
     return total / numbers.length;
 }
 
-console.log("Average is: " + calculateAverage([]));`
+const input = fs.readFileSync(0, 'utf-8').trim();
+const list = input ? input.split(/\\s+/).map(Number) : [];
+console.log("Average is: " + calculateAverage(list));`
       },
       {
         name: 'JS Sample: Syntax Error',
@@ -130,7 +150,7 @@ console.log("Fibonacci:", JSON.stringify(fibonacci(7)));`
     defaultCode: `#include <iostream>
 #include <vector>
 
-double calculateAverage(const std::vector<int>& numbers) {
+double calculateAverage(const std::vector<double>& numbers) {
     double total = 0;
     for (size_t i = 0; i < numbers.size(); i++) {
         total += numbers[i];
@@ -140,14 +160,21 @@ double calculateAverage(const std::vector<int>& numbers) {
 }
 
 int main() {
-    std::vector<int> list = {};
+    std::vector<double> list;
+    double val;
+    while (std::cin >> val) {
+        list.push_back(val);
+    }
     std::cout << "Average is: " << calculateAverage(list) << std::endl;
     return 0;
 }`,
-    defaultDescription: 'Compute average of integers in a vector, returning 0.0 for an empty vector.',
+    defaultDescription: 'Compute average of numbers in a vector, returning 0.0 for an empty vector.',
     defaultTestCases: [
-      { id: 'tc-1', input: '', expectedOutput: 'Average is: 0' },
-      { id: 'tc-2', input: '', expectedOutput: 'Average is: 20' }
+      { id: 'tc-1', input: '', expectedOutput: 'Average is: 0', isEdgeCase: true, label: 'Edge Case: Empty Vector (Division by Zero)' },
+      { id: 'tc-2', input: '10 20 30', expectedOutput: 'Average is: 20', label: 'Standard: Positive Integers' },
+      { id: 'tc-3', input: '42', expectedOutput: 'Average is: 42', isEdgeCase: true, label: 'Edge Case: Single Element' },
+      { id: 'tc-4', input: '-10 -20 -30', expectedOutput: 'Average is: -20', label: 'Negative Numbers' },
+      { id: 'tc-5', input: '0 0 0', expectedOutput: 'Average is: 0', isEdgeCase: true, label: 'Edge Case: All Zeroes' }
     ],
     samples: [
       {
@@ -156,7 +183,7 @@ int main() {
         code: `#include <iostream>
 #include <vector>
 
-double calculateAverage(const std::vector<int>& numbers) {
+double calculateAverage(const std::vector<double>& numbers) {
     double total = 0;
     for (size_t i = 0; i < numbers.size(); i++) {
         total += numbers[i];
@@ -165,7 +192,11 @@ double calculateAverage(const std::vector<int>& numbers) {
 }
 
 int main() {
-    std::vector<int> list = {};
+    std::vector<double> list;
+    double val;
+    while (std::cin >> val) {
+        list.push_back(val);
+    }
     std::cout << "Average is: " << calculateAverage(list) << std::endl;
     return 0;
 }`
@@ -205,9 +236,10 @@ int main() {
     badge: 'JDK 17',
     defaultCode: `import java.util.ArrayList;
 import java.util.List;
+import java.util.Scanner;
 
 public class Main {
-    public static double calculateAverage(List<Integer> numbers) {
+    public static double calculateAverage(List<Double> numbers) {
         double total = 0;
         for (int i = 0; i < numbers.size(); i++) {
             total += numbers.get(i);
@@ -217,14 +249,21 @@ public class Main {
     }
 
     public static void main(String[] args) {
-        List<Integer> list = new ArrayList<>();
+        Scanner scanner = new Scanner(System.in);
+        List<Double> list = new ArrayList<>();
+        while (scanner.hasNextDouble()) {
+            list.add(scanner.nextDouble());
+        }
         System.out.println("Average is: " + calculateAverage(list));
     }
 }`,
-    defaultDescription: 'Calculate average of a List of integers, returning 0.0 when list is empty.',
+    defaultDescription: 'Calculate average of a List of numbers, returning 0.0 when list is empty.',
     defaultTestCases: [
-      { id: 'tc-1', input: '', expectedOutput: 'Average is: 0.0' },
-      { id: 'tc-2', input: '', expectedOutput: 'Average is: 20.0' }
+      { id: 'tc-1', input: '', expectedOutput: 'Average is: 0.0', isEdgeCase: true, label: 'Edge Case: Empty List (NaN Bug)' },
+      { id: 'tc-2', input: '10 20 30', expectedOutput: 'Average is: 20.0', label: 'Standard: Positive Integers' },
+      { id: 'tc-3', input: '42', expectedOutput: 'Average is: 42.0', isEdgeCase: true, label: 'Edge Case: Single Element' },
+      { id: 'tc-4', input: '-10 -20 -30', expectedOutput: 'Average is: -20.0', label: 'Negative Numbers' },
+      { id: 'tc-5', input: '0 0 0', expectedOutput: 'Average is: 0.0', isEdgeCase: true, label: 'Edge Case: All Zeroes' }
     ],
     samples: [
       {
@@ -232,9 +271,10 @@ public class Main {
         description: 'Average computation on empty List returns NaN.',
         code: `import java.util.ArrayList;
 import java.util.List;
+import java.util.Scanner;
 
 public class Main {
-    public static double calculateAverage(List<Integer> numbers) {
+    public static double calculateAverage(List<Double> numbers) {
         double total = 0;
         for (int i = 0; i < numbers.size(); i++) {
             total += numbers.get(i);
@@ -243,7 +283,11 @@ public class Main {
     }
 
     public static void main(String[] args) {
-        List<Integer> list = new ArrayList<>();
+        Scanner scanner = new Scanner(System.in);
+        List<Double> list = new ArrayList<>();
+        while (scanner.hasNextDouble()) {
+            list.add(scanner.nextDouble());
+        }
         System.out.println("Average is: " + calculateAverage(list));
     }
 }`
